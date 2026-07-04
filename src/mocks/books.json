@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "isbn13": "9780132350884",
+    "isbn10": "0132350882",
+    "title": "Clean Code",
+    "subtitle": "A Handbook of Agile Software Craftsmanship",
+    "authors": "Robert C. Martin",
+    "categories": "Computers",
+    "thumbnail": "http://books.google.com/books/content?id=_i6bDeoCQzsC",
+    "description": "Even bad code can function. But if code isn't clean, it can bring a development organization to its knees.",
+    "published_year": 2008,
+    "average_rating": 4.17,
+    "num_pages": 431,
+    "ratings_count": 12345,
+    "embedding": null
+  },
+  {
+    "id": 2,
+    "isbn13": "9780201633610",
+    "isbn10": "020163361X",
+    "title": "Design Patterns",
+    "subtitle": "Elements of Reusable Object-Oriented Software",
+    "authors": "Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides",
+    "categories": "Computers",
+    "thumbnail": "http://books.google.com/books/content?id=6oHuKQe3TjQC",
+    "description": "Capturing a wealth of experience about the design of object-oriented software.",
+    "published_year": 1994,
+    "average_rating": 4.19,
+    "num_pages": 395,
+    "ratings_count": 8901,
+    "embedding": null
+  },
+  {
+    "id": 3,
+    "isbn13": "9780596517748",
+    "isbn10": "0596517742",
+    "title": "JavaScript: The Good Parts",
+    "subtitle": null,
+    "authors": "Douglas Crockford",
+    "categories": "Computers",
+    "thumbnail": "http://books.google.com/books/content?id=PXa2bby0oQ0C",
+    "description": "Most programming languages contain good and bad parts, but JavaScript has more than its share of the bad.",
+    "published_year": 2008,
+    "average_rating": 3.91,
+    "num_pages": 172,
+    "ratings_count": 6543,
+    "embedding": null
+  }
+]

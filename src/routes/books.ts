@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../db/index";
+import { db } from "../db";
 import { books } from "../db/schema";
 
 export const booksRouter = Router();

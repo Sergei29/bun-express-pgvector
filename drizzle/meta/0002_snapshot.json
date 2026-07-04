@@ -1,0 +1,133 @@
+{
+  "id": "f3969f3c-80cd-4fe8-8b5b-7209abe3cb89",
+  "prevId": "5e803ed8-e00f-4b4c-b26e-1c850853e4c2",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.books": {
+      "name": "books",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "isbn13": {
+          "name": "isbn13",
+          "type": "varchar(13)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isbn10": {
+          "name": "isbn10",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subtitle": {
+          "name": "subtitle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "authors": {
+          "name": "authors",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "categories": {
+          "name": "categories",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "thumbnail": {
+          "name": "thumbnail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_year": {
+          "name": "published_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "average_rating": {
+          "name": "average_rating",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "num_pages": {
+          "name": "num_pages",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ratings_count": {
+          "name": "ratings_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "embedding": {
+          "name": "embedding",
+          "type": "vector(768)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "books_embedding_hnsw_idx": {
+          "name": "books_embedding_hnsw_idx",
+          "columns": [
+            {
+              "expression": "embedding",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "vector_cosine_ops"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "hnsw",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

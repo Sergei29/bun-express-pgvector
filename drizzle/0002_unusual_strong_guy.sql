@@ -1,0 +1,1 @@
+CREATE INDEX "books_embedding_hnsw_idx" ON "books" USING hnsw ("embedding" vector_cosine_ops);

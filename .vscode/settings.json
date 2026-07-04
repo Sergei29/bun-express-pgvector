@@ -2,6 +2,14 @@
   "cSpell.words": [
     "booksclub",
     "initdb",
+    "nomic",
+    "ollama",
+    "papaparse",
     "pgdata"
-  ]
+  ],
+  "github.copilot.enable": {
+    "*": false
+  },
+  "github.copilot.inlineSuggest.enable": false,
+  "codeium.enable": false
 }

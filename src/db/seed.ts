@@ -1,8 +1,20 @@
-import { db } from "./index";
-import { books } from "./schema";
+import { readdirSync } from "fs";
+import { join } from "path";
+import { db } from "@/db";
+import { books } from "@/db/schema";
 import Papa from "papaparse";
 
-const file = Bun.file("books.csv");
+const bulkDir = join(import.meta.dir, "bulk");
+const csvFiles = readdirSync(bulkDir).filter((f) => f.endsWith(".csv"));
+
+if (csvFiles.length === 0) {
+  throw new Error(`No .csv files found in ${bulkDir}`);
+}
+
+const csvFilename = csvFiles[0];
+console.log(`Using CSV file: ${csvFilename}`);
+
+const file = Bun.file(join(bulkDir, csvFilename));
 const text = await file.text();
 
 const { data } = Papa.parse<Record<string, string>>(text, {

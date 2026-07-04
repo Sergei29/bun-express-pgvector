@@ -1,10 +1,11 @@
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "nomic-embed-text";
 
-const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export async function waitForOllama(
-  opts: { maxAttempts?: number; delayMs?: number } = {}
+  opts: { maxAttempts?: number; delayMs?: number } = {},
 ): Promise<void> {
   const { maxAttempts = 10, delayMs = 2000 } = opts;
 
@@ -36,7 +37,9 @@ export async function getEmbedding(text: string): Promise<number[]> {
 
   const data = (await res.json()) as { embedding: number[] };
   if (!Array.isArray(data.embedding)) {
-    throw new Error(`Ollama returned 200 but response is missing the embedding array`);
+    throw new Error(
+      `Ollama returned 200 but response is missing the embedding array`,
+    );
   }
   return data.embedding;
 }

@@ -35,5 +35,8 @@ export async function getEmbedding(text: string): Promise<number[]> {
   }
 
   const data = (await res.json()) as { embedding: number[] };
+  if (!Array.isArray(data.embedding)) {
+    throw new Error(`Ollama returned 200 but response is missing the embedding array`);
+  }
   return data.embedding;
 }

@@ -1,11 +1,16 @@
-import { Button } from "@/components/ui/button";
+import Header from "@/components/Header";
+import AskAIForm from "./components/AskAIForm";
 
 function App() {
   return (
-    <main className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold">Books Club</h1>
-      <Button className="mt-4">Get started</Button>
-    </main>
+    <>
+      <header>
+        <Header />
+      </header>
+      <main className="min-h-screen p-4 max-w-7xl mx-auto ">
+        <AskAIForm />
+      </main>
+    </>
   );
 }
 

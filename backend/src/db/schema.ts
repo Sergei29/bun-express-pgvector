@@ -41,3 +41,5 @@ export const books = pgTable(
     ),
   ],
 );
+
+export type Book = typeof books.$inferSelect;

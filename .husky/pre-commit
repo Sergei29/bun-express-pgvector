@@ -1,25 +1,43 @@
 echo "\n🏗️  👷  Running pre-commit checks before your filth reaches the repo  👷  🏗️\n"
 
-echo "📐 Checking formatting...\n"
-bunx prettier --check . || {
+echo "📐 Checking backend formatting...\n"
+cd backend && bunx prettier --check . || {
   echo "\n🤢🤮🤢🤮  YOUR FORMATTING IS ABSOLUTELY DISGUSTING  🤢🤮🤢🤮"
-  echo "Prettier found style violations. Run \`bun format:check\` to see them,"
-  echo "then run \`bunx prettier --write .\` to fix, stage the changes, and try again.\n"
+  echo "Run \`cd backend && bunx prettier --write .\` to fix, stage the changes, and try again.\n"
   exit 1
 }
+cd ..
 
-echo "🔎 Checking types...\n"
-bunx tsc --noEmit || {
+echo "🔎 Checking backend types...\n"
+cd backend && bunx tsc --noEmit || {
   echo "\n💀☠️💀☠️  TYPE ERRORS DETECTED. THE COMPILER IS DISGUSTED WITH YOU  ☠️💀☠️💀"
   echo "Fix the TypeScript errors above, stage the changes, and try again.\n"
   exit 1
 }
+cd ..
 
-echo "🧪 Running tests...\n"
-bun test || {
+echo "🧪 Running backend tests...\n"
+cd backend && bun test || {
   echo "\n🔥🚨🔥🚨  TESTS ARE FAILING. DO NOT SHIP THIS GARBAGE  🚨🔥🚨🔥"
   echo "Fix the failing tests above, stage the changes, and try again.\n"
   exit 1
 }
+cd ..
+
+echo "📐 Checking frontend formatting...\n"
+cd frontend && bunx prettier --check . || {
+  echo "\n🤢🤮🤢🤮  YOUR FRONTEND FORMATTING IS ABSOLUTELY DISGUSTING  🤢🤮🤢🤮"
+  echo "Run \`cd frontend && bunx prettier --write .\` to fix, stage the changes, and try again.\n"
+  exit 1
+}
+cd ..
+
+echo "🔎 Checking frontend types...\n"
+cd frontend && bunx tsc --noEmit || {
+  echo "\n💀☠️💀☠️  FRONTEND TYPE ERRORS DETECTED. THE COMPILER IS DISGUSTED WITH YOU  ☠️💀☠️💀"
+  echo "Fix the TypeScript errors above, stage the changes, and try again.\n"
+  exit 1
+}
+cd ..
 
 echo "\n✅ 🎉 All checks passed. Committing your (barely acceptable) code. 🎉 ✅\n"

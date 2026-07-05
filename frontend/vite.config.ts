@@ -5,7 +5,13 @@ import path from "node:path";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: [
+      {
+        find: /^backend\/(.*)/,
+        replacement: path.resolve(__dirname, "../backend/src") + "/$1",
+      },
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+    ],
   },
   server: {
     proxy: {

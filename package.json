@@ -1,11 +1,11 @@
 {
   "name": "bun-express-books-club-pgvector-api",
   "version": "0.1.0",
+  "devDependencies": {
+    "concurrently": "latest",
+    "husky": "^9.1.7"
+  },
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend"
-  ],
   "scripts": {
     "dev:backend": "docker compose up -d && cd backend && bun dev",
     "dev:frontend": "cd frontend && bun dev",
@@ -13,8 +13,8 @@
     "check-all": "cd backend && bun run check-all && cd ../frontend && bun run check-all",
     "prepare": "husky"
   },
-  "devDependencies": {
-    "concurrently": "latest",
-    "husky": "^9.1.7"
-  }
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
 }

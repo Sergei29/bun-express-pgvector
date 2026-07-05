@@ -1,6 +1,7 @@
 .git/
 node_modules
 bun.lock
-drizzle/meta
+backend/drizzle/meta
 .superpowers
 docs/superpowers
+frontend/dist

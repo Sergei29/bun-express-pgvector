@@ -4,6 +4,7 @@
     "initdb",
     "nomic",
     "ollama",
+    "oxlint",
     "papaparse",
     "pgdata"
   ],

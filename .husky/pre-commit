@@ -40,4 +40,12 @@ cd frontend && bunx tsc --noEmit || {
 }
 cd ..
 
+echo "🧪 Running frontend tests...\n"
+cd frontend && bun run test || {
+  echo "\n🔥🚨🔥🚨  FRONTEND TESTS FAILING. DO NOT SHIP THIS GARBAGE  🚨🔥🚨🔥"
+  echo "Fix the failing tests above, stage the changes, and try again.\n"
+  exit 1
+}
+cd ..
+
 echo "\n✅ 🎉 All checks passed. Committing your (barely acceptable) code. 🎉 ✅\n"

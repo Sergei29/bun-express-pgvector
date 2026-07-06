@@ -15,9 +15,11 @@
     "check-all": "bun run format:check && bun run type-check && bun test"
   },
   "dependencies": {
+    "bull": "^4.16.5",
     "cors": "^2.8.6",
     "drizzle-orm": "^0.44.2",
     "express": "^4.21.2",
+    "ioredis": "^5.11.1",
     "papaparse": "^5.4.1",
     "pg": "^8.13.1",
     "zod": "^4.4.3"

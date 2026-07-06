@@ -3,6 +3,7 @@ import { eq, cosineDistance } from "drizzle-orm";
 import { db } from "@/db";
 import { books } from "@/db/schema";
 import { getEmbedding } from "@/db/ollama";
+import { embeddingQueue } from "@/queues/embedding";
 import { createBookInputSchema, updateBookInputSchema } from "@/lib/validation";
 
 export const booksRouter = Router();
@@ -26,20 +27,21 @@ booksRouter.get("/api/books", async (req, res, next) => {
 booksRouter.post("/api/books", async (req, res, next) => {
   try {
     const parsed = createBookInputSchema.parse(req.body);
-    const embeddingText = [
-      parsed.title,
-      parsed.subtitle,
-      parsed.authors,
-      parsed.categories,
-      parsed.description,
-    ]
-      .filter(Boolean)
-      .join(" ");
-    const embedding = await getEmbedding(embeddingText);
     const [book] = await db
       .insert(books)
-      .values({ ...parsed, embedding })
+      .values({ ...parsed, embedding: null })
       .returning();
+
+    // Queue embedding job with retry logic
+    await embeddingQueue.add(
+      { bookId: book.id },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 2000 },
+        removeOnComplete: true,
+      },
+    );
+
     res.status(201).json(book);
   } catch (err) {
     next(err);
@@ -109,25 +111,30 @@ booksRouter.put("/api/books/:id", async (req, res, next) => {
       "categories",
       "description",
     ] as const;
-    let embedding: number[] | undefined;
-    if (SEMANTIC_FIELDS.some((f) => f in parsed)) {
-      const merged = { ...existing, ...parsed };
-      const embeddingText = [
-        merged.title,
-        merged.subtitle,
-        merged.authors,
-        merged.categories,
-        merged.description,
-      ]
-        .filter(Boolean)
-        .join(" ");
-      embedding = await getEmbedding(embeddingText);
-    }
+
+    const hasSemanticChanges = SEMANTIC_FIELDS.some((f) => f in parsed);
+    const updateData = hasSemanticChanges
+      ? { ...parsed, embedding: null }
+      : parsed;
+
     const [updated] = await db
       .update(books)
-      .set({ ...parsed, ...(embedding ? { embedding } : {}) })
+      .set(updateData)
       .where(eq(books.id, id))
       .returning();
+
+    // Queue embedding job if semantic fields changed
+    if (hasSemanticChanges) {
+      await embeddingQueue.add(
+        { bookId: id },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 2000 },
+          removeOnComplete: true,
+        },
+      );
+    }
+
     res.json(updated);
   } catch (err) {
     next(err);

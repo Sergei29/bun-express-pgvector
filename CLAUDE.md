@@ -27,7 +27,7 @@ cd backend && bun run check-all   # prettier + tsc + tests
 cd frontend && bun run check-all  # prettier + tsc
 
 # Infrastructure
-docker compose up -d    # start Postgres + pgvector + Ollama containers
+docker compose up -d    # start Postgres + pgvector + Ollama + Redis containers
 docker compose down     # stop containers
 ```
 
@@ -53,6 +53,8 @@ backend/
       errorHandler.ts  # global Express error handler (4-arg signature)
     mocks/
       books.json    # mock book fixtures used by route tests
+    queues/
+      embedding.ts     # Bull queue for embedding jobs: processor, retry, event logging
     routes/
       health.ts          # GET /health
       health.test.ts     # supertest tests for /health
@@ -86,7 +88,9 @@ docker/
 
 **Test isolation:** `app.ts` separates app creation from `listen()`. Route tests import `app` directly via `await import("@/app")`, after `mock.module("@/db", ...)` stubs out the Drizzle client — no real database required.
 
-**Embedding pipeline:** `bun db:embed` → `embedding.ts` calls `waitForOllama()` → batch loop fetches books with `NULL` embedding → `getEmbedding()` calls Ollama → updates `books.embedding` column → logs summary of succeeded/failed IDs.
+**Embedding job queue:** `POST /api/books` and `PUT /api/books/:id` (on semantic field change) add jobs to the Bull queue (`backend/src/queues/embedding.ts`). Queue uses Redis backend with 3-attempt retry (exponential backoff). Server initializes queue processor on startup via `server.ts`. Job processor calls `generateEmbeddingAsync()` which updates the book's embedding column. Jobs are logged by status (queued, processing, completed, failed).
+
+**Batch embedding pipeline:** `bun db:embed` → `embedding.ts` calls `waitForOllama()` → batch loop fetches books with `NULL` embedding → `getEmbedding()` calls Ollama → updates `books.embedding` column → logs summary of succeeded/failed IDs. This is separate from the job queue and runs as a standalone script.
 
 **Provider-swap pattern:** `ollama.ts` owns all Ollama HTTP logic and exports `{ waitForOllama, getEmbedding }`. To switch LLM providers, add a new transport module with the same interface and update the import in `embedding.ts`.
 
@@ -95,9 +99,10 @@ docker/
 - **Workspaces:** Bun manages a single root `bun.lock` covering both `backend/` and `frontend/`. Run `bun install` from the repo root to install all dependencies.
 - **Database:** PostgreSQL 16 via `pgvector/pgvector:pg16` Docker image. The `books` table has an `embedding vector(768)` column and an HNSW cosine index (`books_embedding_hnsw_idx`) ready for semantic search.
 - **Ollama:** Runs in Docker (`ollama/ollama:latest`, port 11434). Model: `nomic-embed-text` (768 dimensions). Pull with: `docker compose exec ollama ollama pull nomic-embed-text`
+- **Redis & Bull Queue:** Redis runs in Docker (port 6379) as the backend for Bull job queue. Embedding tasks from `POST /api/books` and `PUT /api/books/:id` are queued with 3-attempt retry and exponential backoff. Configured via `REDIS_URL` env var (default `redis://localhost:6379`). Queue processor starts automatically when server runs (`backend/src/server.ts` imports queue module). Job events logged to console (queued, processing, completed, failed, stalled).
 - **ORM:** Drizzle ORM with `drizzle-orm/node-postgres`. Schema lives in `backend/src/db/schema.ts`; after any schema change run `bun run db:generate` then `bun run db:migrate` from `backend/`.
 - **CORS:** Backend allows `http://localhost:5173` (Vite dev server). Configured in `backend/src/app.ts` via the `cors` package.
-- **Environment:** Bun loads `.env` automatically. Copy `backend/.env.example` → `backend/.env` before first run. Embedding-specific vars: `OLLAMA_URL` (default `http://localhost:11434`), `OLLAMA_MODEL` (default `nomic-embed-text`), `EMBEDDING_CHUNK_SIZE` (default `20`, raise to `50` with GPU).
+- **Environment:** Bun loads `.env` automatically. Copy `backend/.env.example` → `backend/.env` before first run. Key vars: `DATABASE_URL`, `REDIS_URL` (default `redis://localhost:6379`), `OLLAMA_URL` (default `http://localhost:11434`), `OLLAMA_MODEL` (default `nomic-embed-text`), `EMBEDDING_CHUNK_SIZE` (default `20`, raise to `50` with GPU).
 - **Pagination:** `GET /api/books` defaults to `page=1, limit=20`, caps limit at 100.
 - **Seed:** `bun db:seed` is not idempotent — running it twice doubles the rows. Truncate first if re-seeding: `docker compose exec db psql -U postgres -d booksclub -c "TRUNCATE books RESTART IDENTITY;"` The seeder scans `backend/src/db/bulk/` and uses the first `.csv` file it finds.
 - **Embed:** `bun db:embed` is safe to re-run — it only processes books with `NULL` embedding. Failed book IDs are printed at the end; re-run to retry them.

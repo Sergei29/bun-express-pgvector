@@ -15,6 +15,29 @@ mock.module("@/db/ollama", () => ({
   },
 }));
 
+// ── Bull Queue mock ──────────────────────────────────────────────────────────
+let queueAddCalls: Array<{ bookId: number }> = [];
+
+mock.module("@/queues/embedding", () => ({
+  embeddingQueue: {
+    add: async (data: { bookId: number }) => {
+      queueAddCalls.push(data);
+      return { id: queueAddCalls.length };
+    },
+    process: () => {},
+    on: () => {},
+  },
+}));
+
+// ── Embedding async mock ─────────────────────────────────────────────────────
+mock.module("@/db/embedding", () => ({
+  createBookSearchText: (book: any) =>
+    `Title: ${book.title}\nSubtitle: ${book.subtitle ?? ""}\nAuthors: ${book.authors ?? "Unknown"}\nCategories: ${book.categories ?? ""}\nDescription: ${book.description ?? ""}`.trim(),
+  generateEmbeddingAsync: async (_bookId: number) => {
+    // Mock implementation for queue processor
+  },
+}));
+
 // ── DB mock ──────────────────────────────────────────────────────────────────
 mock.module("@/db", createDbMockModule);
 
@@ -48,15 +71,18 @@ describe("POST /api/books", () => {
     dbMock.dbError = null;
     getEmbeddingCallCount = 0;
     ollamaError = null;
+    queueAddCalls = [];
   });
 
-  it("returns 201 with the created book on a valid body", async () => {
+  it("returns 201 with the created book and queues embedding job", async () => {
     const res = await request(app)
       .post("/api/books")
       .send({ title: "Clean Code", authors: "Robert C. Martin" });
     expect(res.status).toBe(201);
     expect(res.body).toEqual(mockBook);
-    expect(getEmbeddingCallCount).toBe(1);
+    expect(res.body.embedding).toBeNull();
+    expect(queueAddCalls).toHaveLength(1);
+    expect(queueAddCalls[0]).toEqual({ bookId: 1 });
   });
 
   it("returns 400 when title is missing", async () => {
@@ -66,11 +92,11 @@ describe("POST /api/books", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 500 when Ollama fails", async () => {
+  it("returns 201 even when Ollama fails (embedding happens async)", async () => {
     ollamaError = new Error("Ollama unavailable");
     const res = await request(app).post("/api/books").send({ title: "A Book" });
-    expect(res.status).toBe(500);
-    expect(res.body.error).toBe("Ollama unavailable");
+    expect(res.status).toBe(201);
+    expect(res.body.embedding).toBeNull();
   });
 
   it("returns 500 when the database throws", async () => {
@@ -91,6 +117,7 @@ describe("DELETE /api/books/:id", () => {
     dbMock.dbError = null;
     getEmbeddingCallCount = 0;
     ollamaError = null;
+    queueAddCalls = [];
   });
 
   it("returns 204 when the book is deleted", async () => {
@@ -128,6 +155,7 @@ describe("PUT /api/books/:id", () => {
     dbMock.dbError = null;
     getEmbeddingCallCount = 0;
     ollamaError = null;
+    queueAddCalls = [];
   });
 
   it("returns 200 with updated book on a valid body", async () => {
@@ -161,29 +189,31 @@ describe("PUT /api/books/:id", () => {
     expect(res.body.error).toBe("Book not found");
   });
 
-  it("calls getEmbedding when a semantic field is present in the payload", async () => {
+  it("queues embedding job when a semantic field is updated", async () => {
     const res = await request(app)
       .put("/api/books/1")
       .send({ title: "New Title" });
     expect(res.status).toBe(200);
-    expect(getEmbeddingCallCount).toBe(1);
+    expect(res.body.embedding).toBeNull();
+    expect(queueAddCalls).toHaveLength(1);
+    expect(queueAddCalls[0]).toEqual({ bookId: 1 });
   });
 
-  it("skips getEmbedding when only non-semantic fields are updated", async () => {
+  it("skips queue when only non-semantic fields are updated", async () => {
     const res = await request(app)
       .put("/api/books/1")
       .send({ average_rating: 4.5, num_pages: 300 });
     expect(res.status).toBe(200);
-    expect(getEmbeddingCallCount).toBe(0);
+    expect(queueAddCalls).toHaveLength(0);
   });
 
-  it("returns 500 when Ollama fails during re-embedding", async () => {
+  it("returns 200 even when Ollama fails (re-embedding happens async)", async () => {
     ollamaError = new Error("Ollama unavailable");
     const res = await request(app)
       .put("/api/books/1")
       .send({ title: "New Title" });
-    expect(res.status).toBe(500);
-    expect(res.body.error).toBe("Ollama unavailable");
+    expect(res.status).toBe(200);
+    expect(res.body.embedding).toBeNull();
   });
 
   it("returns 400 when the request body is empty", async () => {
@@ -212,6 +242,7 @@ describe("GET /api/books/search", () => {
     dbMock.dbError = null;
     getEmbeddingCallCount = 0;
     ollamaError = null;
+    queueAddCalls = [];
   });
 
   it("returns 200 with results and distance scores", async () => {

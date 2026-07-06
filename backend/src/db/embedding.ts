@@ -15,6 +15,36 @@ Description: ${book.description ?? ""}`.trim();
 const wait = (ms = 100) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+export async function generateEmbeddingAsync(bookId: number): Promise<void> {
+  try {
+    const [book] = await db
+      .select()
+      .from(books)
+      .where(eq(books.id, bookId))
+      .limit(1);
+
+    if (!book) {
+      console.warn(`Book ${bookId} not found for embedding`);
+      return;
+    }
+
+    const embeddingText = createBookSearchText(book);
+    const vector = await getEmbedding(embeddingText);
+
+    await db
+      .update(books)
+      .set({ embedding: vector })
+      .where(eq(books.id, bookId));
+
+    console.log(`✅ Embedded book ${bookId} ("${book.title}")`);
+  } catch (err) {
+    console.error(
+      `❌ Failed to embed book ${bookId}:`,
+      err instanceof Error ? err.message : err,
+    );
+  }
+}
+
 async function main() {
   console.log("🚀 Starting embedding generation...");
 
@@ -85,7 +115,10 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error("Embedding script error:", err);
-  process.exit(1);
-});
+// Only run main() if this file is the entry point, not when imported
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error("Embedding script error:", err);
+    process.exit(1);
+  });
+}

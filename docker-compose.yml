@@ -16,6 +16,14 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
 volumes:
   pgdata:
   ollama_data:
+  redis_data:

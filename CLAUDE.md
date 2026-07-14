@@ -40,7 +40,7 @@ backend/
   src/
     app.ts        # Express app factory (cors + json + router + errorHandler), no listen()
     db/
-      schema.ts     # Drizzle table definitions (books + HNSW index)
+      schema.ts     # Drizzle table definitions (books + HNSW index; users/accounts/sessions/verificationTokens for Auth.js)
       index.ts      # pg Pool + drizzle client, exported as `db`
       seed.ts       # one-shot CSV seeder — scans src/db/bulk/ for *.csv
       bulk/
@@ -51,6 +51,15 @@ backend/
       validation.ts # Zod schemas: createBookInputSchema, updateBookInputSchema
     middleware/
       errorHandler.ts  # global Express error handler (4-arg signature)
+    auth/
+      adapter.ts     # Drizzle-backed Auth.js adapter (lazy Proxy; sessionsTable omitted — see file header comment)
+      auth.ts        # ExpressAuth() handler, exported as `authHandler`
+      config.ts      # central Auth.js config: JWT session strategy, cookies, jwt/session callbacks, AUTH_SECRET
+      index.ts       # public surface: authHandler, requireAuth, authConfig, user lookup functions
+      middleware.ts  # requireAuth() — validates session, attaches req.user, 401 if unauthenticated
+      providers.ts   # Credentials provider (email/password) with generic-error authorize()
+      types.ts       # module augmentation adding id/role to Auth.js's User/Session/JWT types
+      users.ts       # findUserByEmail, findUserById, createUser, verifyPassword (bcryptjs)
     mocks/
       books.json    # mock book fixtures used by route tests
     queues/
@@ -84,6 +93,8 @@ docker/
 
 **Request flow:** `backend/src/server.ts` → `app.ts` → `cors()` → `express.json()` → `router` (health + books) → `errorHandler`
 
+**Auth flow:** `/auth/*` (Auth.js's own REST protocol: `GET /auth/csrf`, `POST /auth/callback/credentials`, `GET /auth/session`, `POST /auth/signout`, etc.) is mounted in `app.ts` *before* `express.json()`, since `ExpressAuth()` parses its own request body. Sessions use the **JWT strategy**, not database sessions — Auth.js does not support the Credentials provider together with database sessions (it throws `UnsupportedStrategy`). The Drizzle adapter (`@auth/drizzle-adapter`) is still configured so `users`/`accounts`/`verificationTokens` persist to Postgres and OAuth providers can be added later, but for Credentials sign-in Auth.js does not call adapter methods at all — user lookup/creation goes through `backend/src/auth/users.ts` directly. Protect a route with `requireAuth` from `@/auth`, which populates `req.user: { id, email, name, role }` (typed via `backend/src/types/express.d.ts`) or returns `401`.
+
 **Frontend proxy:** Vite dev server proxies `/api/*` → `http://localhost:8080` so `fetch('/api/books')` works without hardcoded URLs or CORS issues in development.
 
 **Test isolation:** `app.ts` separates app creation from `listen()`. Route tests import `app` directly via `await import("@/app")`, after `mock.module("@/db", ...)` stubs out the Drizzle client — no real database required.
@@ -103,6 +114,8 @@ docker/
 - **ORM:** Drizzle ORM with `drizzle-orm/node-postgres`. Schema lives in `backend/src/db/schema.ts`; after any schema change run `bun run db:generate` then `bun run db:migrate` from `backend/`.
 - **CORS:** Backend allows `http://localhost:5173` (Vite dev server). Configured in `backend/src/app.ts` via the `cors` package.
 - **Environment:** Bun loads `.env` automatically. Copy `backend/.env.example` → `backend/.env` before first run. Key vars: `DATABASE_URL`, `REDIS_URL` (default `redis://localhost:6379`), `OLLAMA_URL` (default `http://localhost:11434`), `OLLAMA_MODEL` (default `nomic-embed-text`), `EMBEDDING_CHUNK_SIZE` (default `20`, raise to `50` with GPU).
+- **Auth:** Auth.js (`@auth/express`, `@auth/core`, `@auth/drizzle-adapter`) with a Credentials (email/password) provider and **JWT session strategy** (required — Credentials + database sessions is unsupported by Auth.js). Passwords hashed with `bcryptjs` (not `bcrypt`, to avoid native-addon build issues under Bun). New Drizzle tables `users`, `accounts`, `sessions`, `verificationTokens` in `backend/src/db/schema.ts`, with UUID primary keys generated **application-side** via `crypto.randomUUID()` (no `pgcrypto` extension). The `users` table has two extra columns beyond the standard Auth.js schema: `password` (hashed, nullable) and `role`.
+- **Environment (auth):** `backend/.env.example` also defines `AUTH_SECRET` (required, generate with `openssl rand -base64 33`), `AUTH_URL` (backend's own base URL, e.g. `http://localhost:8080`), `SESSION_MAX_AGE` (JWT session max age in seconds, default `2592000` = 30 days), and `COOKIE_DOMAIN` (blank for local dev; set to the deployed domain in production).
 - **Pagination:** `GET /api/books` defaults to `page=1, limit=20`, caps limit at 100.
 - **Seed:** `bun db:seed` is not idempotent — running it twice doubles the rows. Truncate first if re-seeding: `docker compose exec db psql -U postgres -d booksclub -c "TRUNCATE books RESTART IDENTITY;"` The seeder scans `backend/src/db/bulk/` and uses the first `.csv` file it finds.
 - **Embed:** `bun db:embed` is safe to re-run — it only processes books with `NULL` embedding. Failed book IDs are printed at the end; re-run to retry them.

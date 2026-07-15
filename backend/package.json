@@ -15,6 +15,10 @@
     "check-all": "bun run format:check && bun run type-check && bun test"
   },
   "dependencies": {
+    "@auth/core": "^0.41.2",
+    "@auth/drizzle-adapter": "^1.11.2",
+    "@auth/express": "^0.12.2",
+    "bcryptjs": "^3.0.3",
     "bull": "^4.16.5",
     "cors": "^2.8.6",
     "drizzle-orm": "^0.44.2",

@@ -9,6 +9,7 @@
     "ollama",
     "oxlint",
     "papaparse",
+    "pgcrypto",
     "pgdata"
   ],
   "github.copilot.enable": {
